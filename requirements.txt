@@ -1,0 +1,28 @@
+# PyTorch com CUDA 12.1 (para RTX 3050 e driver 566.41)
+torch==2.2.2+cu121
+torchvision==0.17.2+cu121
+torchaudio==2.2.2+cu121
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# NumPy compatível com PyTorch e outras libs nativas
+numpy==1.26.4
+
+# Biblioteca para manipulação de dados
+pandas==2.2.2
+
+# Gráficos e visualizações
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# Machine learning clássico
+scikit-learn==1.4.2
+
+# Métricas para deep learning (opcional mas útil)
+torchmetrics==1.3.2
+
+# Jupyter (caso use notebooks)
+jupyterlab==4.2.1
+ipykernel==6.29.4
+
+# Utilitários
+tqdm==4.66.4
