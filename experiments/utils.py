@@ -23,6 +23,34 @@ def plot_reconstructions(model, dataloader, device, save_path):
     plt.savefig(save_path)
     plt.close()
 
+def plot_reconstructions_vae(model, dataloader, device, save_path):
+    model.eval()
+    images, _ = next(iter(dataloader))
+    images = images.to(device)
+
+    # Verifica se o modelo é um VAE (retorna 3 valores)
+    outputs = model(images)
+    if isinstance(outputs, tuple) and len(outputs) == 3:
+        reconstructed = outputs[0]
+    else:
+        reconstructed = outputs
+
+    # Selecionar algumas imagens para exibir
+    n = min(8, images.size(0))
+    images = images[:n].cpu()
+    reconstructed = reconstructed[:n].cpu()
+
+    fig, axes = plt.subplots(2, n, figsize=(n * 2, 4))
+    for i in range(n):
+        axes[0, i].imshow(images[i].squeeze(), cmap='gray')
+        axes[0, i].axis("off")
+        axes[1, i].imshow(reconstructed[i].squeeze(), cmap='gray')
+        axes[1, i].axis("off")
+    plt.tight_layout()
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    plt.savefig(save_path)
+    plt.close()
+
 
 def save_metrics(metrics, filename):
     df = pd.DataFrame([metrics])

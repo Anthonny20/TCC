@@ -1,5 +1,6 @@
 import torch
 from torch import nn, optim
+import torch.nn.functional as F
 from tqdm import tqdm
 from experiments.utils import compute_mse, compute_ssim
 
@@ -34,3 +35,35 @@ def train_autoencoder(model, train_loader, test_loader, device, epochs=5, lr=1e-
         mse = compute_mse(images, outputs)
         ssim_value = compute_ssim(images[0], outputs[0][0])
     return {'mse':mse, 'ssim':ssim_value}
+
+def train_vae(model, train_loader, test_loader, device, epochs=5, lr=1e-3):
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    model.train()
+    for epoch in range(epochs):
+        running_loss = 0.0
+        for batch_idx, (images, _) in enumerate(tqdm(train_loader, desc=f"Epoch[{epoch+1}/{epochs}]")):
+            images = images.to(device)
+            optimizer.zero_grad()
+
+            recon, mu, logvar = model(images)
+            recon_loss = F.mse_loss(recon, images)
+            kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / images.size(0)
+            loss = recon_loss + kl_div
+
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        print(f"Epoch {epoch+1}, Loss: {running_loss/len(train_loader):.4f}")
+
+    # Avaliação
+    model.eval()
+    images, _ = next(iter(test_loader))
+    images = images.to(device)
+    recon, _, _ = model(images)
+
+    mse = compute_mse(images, recon)
+    ssim = compute_ssim(images[0], recon[0])
+
+    return {"MSE": mse, "SSIM": ssim}

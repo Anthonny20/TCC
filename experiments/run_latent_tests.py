@@ -1,4 +1,7 @@
 from models.linear.ae import Autoencoder
+from models.linear.sparse import SparseAutoencoder
+from models.linear.denoising import DenoisingAutoencoder
+from models.linear.vae import VariaotinalAutoencoder
 from experiments.dataloader import get_dataloaders
 from experiments.train import train_autoencoder
 from experiments.utils import plot_reconstructions, save_metrics

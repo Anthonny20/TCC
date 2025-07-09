@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from ae import Autoencoder
+#from models.linear.ae import Autoencoder
 
 # Variational Autoencoder Linear
 class VariaotinalAutoencoder(nn.Module):
@@ -17,7 +17,7 @@ class VariaotinalAutoencoder(nn.Module):
 
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, 128),
-            nn.Relu(),
+            nn.ReLU(),
             nn.Linear(128, 28*28),
             nn.Sigmoid(),
             nn.Unflatten(1, (1, 28, 28))

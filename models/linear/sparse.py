@@ -1,5 +1,5 @@
 import torch
-from ae import Autoencoder
+from models.linear.ae import Autoencoder
 
 # Sparse Autoencoder Linear (L1 penalty)
 class SparseAutoencoder(Autoencoder):

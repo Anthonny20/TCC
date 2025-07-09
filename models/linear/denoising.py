@@ -1,5 +1,5 @@
 import torch
-from ae import Autoencoder
+from models.linear.ae import Autoencoder
 
 # Denoising Autoencoder Linear
 class DenoisingAutoencoder(Autoencoder):
