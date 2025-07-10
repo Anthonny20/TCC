@@ -48,6 +48,93 @@ def plot_reconstructions_vae(model, dataloader, device, save_path):
     plt.savefig(save_path)
     plt.close()
 
+def plot_reconstructions_conv(model, dataloader, device, save_path):
+    model.eval()
+    images, _ = next(iter(dataloader))
+    images = images.to(device)
+
+    with torch.no_grad():
+        outputs = model(images)  # ← CORRETO AQUI
+
+    # Se outputs vier em forma de tuple (como no VAE), pegue o primeiro elemento
+    if isinstance(outputs, tuple):
+        outputs = outputs[0]
+
+    images = images.cpu()
+    outputs = outputs.cpu()
+
+    fig, axes = plt.subplots(2, 6, figsize=(12, 4))
+    for i in range(6):
+        axes[0, i].imshow(images[i].squeeze(), cmap="gray")
+        axes[0, i].axis("off")
+        axes[1, i].imshow(outputs[i].squeeze(), cmap="gray")
+        axes[1, i].axis("off")
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+def plot_reconstructions_sparse(model, test_loader, device, save_path):
+    model.eval()
+    with torch.no_grad():
+        for images, _ in test_loader:
+            images = images.to(device)
+            outputs = model(images)
+            if isinstance(outputs, tuple):            # ← proteção
+                outputs = outputs[0]
+            break
+    outputs = outputs.cpu().detach()
+    
+    fig, axes = plt.subplots(2, 8, figsize=(12, 3))
+    for i in range(8):
+        axes[0, i].imshow(images[i].cpu().squeeze(), cmap="gray")
+        axes[1, i].imshow(outputs[i].squeeze(), cmap="gray")
+        axes[0, i].axis("off")
+        axes[1, i].axis("off")
+    plt.savefig(save_path)
+    plt.close()
+
+def plot_reconstructions_denoising(model, test_loader, device, save_path):
+    model.eval()
+    with torch.no_grad():
+        for images, _ in test_loader:
+            images = images.to(device)
+            noisy = images + 0.3 * torch.randn_like(images)
+            noisy = torch.clamp(noisy, 0., 1.)
+            outputs = model(noisy)
+            if isinstance(outputs, tuple):            # ← proteção
+                outputs = outputs[0]
+            break
+    outputs = outputs.cpu().detach()
+
+    fig, axes = plt.subplots(2, 8, figsize=(12, 3))
+    for i in range(8):
+        axes[0, i].imshow(images[i].cpu().squeeze(), cmap="gray")
+        axes[1, i].imshow(outputs[i].squeeze(), cmap="gray")
+        axes[0, i].axis("off")
+        axes[1, i].axis("off")
+    plt.savefig(save_path)
+    plt.close()
+
+def plot_reconstructions_conv_vae(model, test_loader, device, save_path):
+    model.eval()
+    with torch.no_grad():
+        for images, _ in test_loader:
+            images = images.to(device)
+            outputs, _, _ = model(images)
+            if isinstance(outputs, tuple):            # ← proteção
+                outputs = outputs[0]
+            break
+    outputs = outputs.cpu().detach()
+
+    fig, axes = plt.subplots(2, 8, figsize=(12, 3))
+    for i in range(8):
+        axes[0, i].imshow(images[i].cpu().squeeze(), cmap="gray")
+        axes[1, i].imshow(outputs[i].squeeze(), cmap="gray")
+        axes[0, i].axis("off")
+        axes[1, i].axis("off")
+    plt.savefig(save_path)
+    plt.close()
+
 
 
 def save_metrics(metrics, filename):

@@ -5,7 +5,7 @@ class ConvVAE(nn.Module):
     def __init__(self, latent_dim=32):
         super(ConvVAE, self).__init__()
 
-        self.enc = nn.Sequential(
+        self.encoder = nn.Sequential(
             nn.Conv2d(1, 16, 3, stride=2, padding=1),
             nn.ReLU(),
             nn.Conv2d(16, 32, 3, stride=2, padding=1),
@@ -13,31 +13,24 @@ class ConvVAE(nn.Module):
         )
         self.fc_mu = nn.Linaer(32* 7 * 7, latent_dim)
         self.fc_logvar = nn.Linear(32 * 7 * 7, latent_dim)
-        self.fc_dec = nn.Linear(latent_dim, 32 * 7 * 7)
-        self.dec = nn.Sequential(
+        self.fc_decode = nn.Linear(latent_dim, 32 * 7 * 7)
+
+        self.decoder = nn.Sequential(
             nn.ConvTranspose2d(32, 16, 3, stride=2, output_padding=1, padding=1),
             nn.ReLU(),
             nn.ConvTranspose2d(16, 1, 3, stride=2, output_padding=1, padding=1),
             nn.Sigmoid()
         )
-
-    def encode(self, x):
-        x = self.enc(x)
-        x = x.view(x.size(0), -1)
-        return self.fc_mu(x), self.fc_logvar(x)
     
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
     
-    def decode(self, z):
-        x = self.fc_dec(z)
-        x = x.view(-1, 32, 7, 7)
-        return self.dec(x)
-    
     def forward(self, x):
-        mu, logvar = self.encode(x)
+        h = self.encoder(x).view(x.size(0), -1)
+        mu = self.fc_mu(h)
+        logvar = self.fc_logvar(h)
         z = self.reparameterize(mu, logvar)
-        x_recon = self.decode(z)
-        return x_recon, mu, logvar
+        out = self.fc_decode(z).view(x.size(0), 32, 7, 7)
+        return self.decoder(out), mu, logvar
