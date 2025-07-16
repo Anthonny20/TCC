@@ -5,39 +5,82 @@ import torch.nn as nn
 class ConvAutoencoder(nn.Module):
 
     """
-    Explicação Rápida de como funciona:
-        Parte                       Operação                        Tam Saída
-        Conv2d(1, 16, 3, 2, 1)      reduz resoução para 14x14       [B, 16, 14, 14]
-        Conv2d(16, 32, 3, 2, 1)     reduz para 7x7                  [B, 32, 7, 7]
-        Flatten + Linear            gera vetor latente              [B, latent_dim]
-        Linear + Unflatten          reconstrói para [32, 7, 7]     
-        ConvTranspose2d             aumenta gradualmente até 28x28  [B, 1, 28, 28] 
+    Por que essa arquitetura é adequada para CIFAR‑10?
+        Mais canais iniciais (3 → 32)
+        Necessário para captar informação de cor e bordas finas; 32 filtros é um ponto de partida clássico.
+
+        Três blocos de downsampling (32 → 16 → 8 → 4 px)
+        • Mantém a profundidade moderada (≈ 10 – 15 layers efetivas).
+        • 4 × 4 de resolução + 128 filtros gera uma representação compacta, porém expressiva.
+        • Reduz drasticamente o tamanho antes do Flatten, evitando vetor gigantesco.
+
+        Latent vector (latent_dim) separado
+        Facilita experimentar latent_dim ∈ {32, 64, 128, 256} sem refatorar o CNN.
+
+        Decoder espelhado
+        ConvTranspose assegura que cada upsample reflita o downsample correspondente, gerando saídas 32×32×3.
+
+        Sigmoid() final
+        Mantém pixels normalizados em [0, 1] (combina com transforms.ToTensor()).
+
+
     """
     def __init__(self, latent_dim=32):
         super(ConvAutoencoder, self).__init__()
         # Codificador
         self.encoder = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1), # [B, 16, 14, 14]
-            nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1), # [B, 32, 7, 7]
-            nn.ReLU(),
-            nn.Flatten(),                                           # [B, 32*7*7]
-            nn.Linear(32 * 7 * 7, latent_dim)                       # [B, latent_dim]
-        )
+        nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),  # [B, 32, 32, 32]
+        nn.BatchNorm2d(32),
+        nn.ReLU(),
+        nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # [B, 64, 16, 16]
+        nn.BatchNorm2d(64),
+        nn.ReLU(),
+
+        nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+        nn.BatchNorm2d(64),
+        nn.ReLU(),
+        nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1), # [B, 128, 8, 8]
+        nn.BatchNorm2d(128),
+        nn.ReLU(),
+
+        nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+        nn.BatchNorm2d(128),
+        nn.ReLU(),
+        nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1), # [B, 256, 4, 4]
+        nn.BatchNorm2d(256),
+        nn.ReLU()
+    )
+        self.flatten = nn.Flatten()
+        self.fc_enc = nn.Linear(256 * 4 * 4, latent_dim)
         
-        # Decodificador
+        self.fc_dec = nn.Linear(latent_dim, 256 * 4 * 4)
         self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, 32 * 7 * 7),
-            nn.ReLU(),
-            nn.Unflatten(1, (32, 7, 7)),
-            nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1), # [B, 16, 14, 14]
-            nn.ReLU(),
-            nn.ConvTranspose2d(16, 1, kernel_size=3, stride=2, padding=1, output_padding=1),  # [B, 1, 28, 28]
-            nn.Sigmoid()
-        )
+        nn.Upsample(scale_factor=2, mode='nearest'),  # [B, 256, 8, 8]
+        nn.Conv2d(256, 128, 3, padding=1),
+        nn.BatchNorm2d(128),
+        nn.ReLU(),
+
+        nn.Upsample(scale_factor=2),  # [B, 128, 16, 16]
+        nn.Conv2d(128, 64, 3, padding=1),
+        nn.BatchNorm2d(64),
+        nn.ReLU(),
+
+        nn.Upsample(scale_factor=2),  # [B, 64, 32, 32]
+        nn.Conv2d(64, 32, 3, padding=1),
+        nn.BatchNorm2d(32),
+        nn.ReLU(),
+
+        nn.Conv2d(32, 3, 3, padding=1),
+        nn.Sigmoid()
+    )
+        
+
+
+        
 
     def forward(self, x):
-        z = self.encoder(x)
-        out = self.decoder(z)
-        return out
-    
+        h = self.encoder(x)
+        z = self.fc_enc(self.flatten(h))       # vetor latente
+        h_dec = self.fc_dec(z).view(-1, 256,4,4)
+        x_hat = self.decoder(h_dec)
+        return x_hat

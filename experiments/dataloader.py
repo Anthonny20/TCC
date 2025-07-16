@@ -2,7 +2,7 @@ import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
-def get_dataloaders(batch_size=128, dataset='FashionMNIST'):
+def get_dataloaders(batch_size=128, dataset='CIFAR10'):
     transform = transforms.ToTensor()
 
     if dataset == 'MNIST':
@@ -11,6 +11,9 @@ def get_dataloaders(batch_size=128, dataset='FashionMNIST'):
     elif dataset == 'FashionMNIST':
         train_dataset = datasets.FashionMNIST(root='data', train=True, download=True, transform=transform)
         test_dataset = datasets.FashionMNIST(root='data', train=False, download=True, transform=transform)
+    elif dataset == 'CIFAR10':
+        train_dataset = datasets.CIFAR10(root='data', train=True, download=True, transform=transform)
+        test_dataset = datasets.CIFAR10(root='data', train=False, download=True, transform=transform)
     else:
         raise ValueError("Dataset não suportado. Use 'MNIST' ou 'FashionMNIST'")
 
