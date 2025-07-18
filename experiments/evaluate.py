@@ -5,8 +5,10 @@ from sewar.full_ref import uqi, ergas
 from math import sqrt
 import numpy as np
 from tqdm import tqdm
+import torchvision.utils as vutils
 import os
 import csv
+import matplotlib.pyplot as plt
 
 def tensor_to_image(tensor):
     """
@@ -91,3 +93,32 @@ def save_metrics(metrics, save_path, latent_dim):
         row = {"latent_dim": latent_dim}
         row.update(metrics)
         writer.writerow(row)
+        
+    
+def save_reconstructions(model, test_loader, device, save_dir, n_images=8):
+    os.makedirs(save_dir, exist_ok=True)
+    model.eval()
+    with torch.no_grad():
+        images, _ = next(iter(test_loader))
+        images = images.to(device)[:n_images]
+        outputs = model(images)
+        if isinstance(outputs, tuple):
+            outputs = outputs[0]
+            
+        # Concatena originais e reconstruções para exibição lado a lado
+        comparison = torch.cat([images.cpu(), outputs.cpu()])
+        grid = vutils.make_grid(comparison, nrow=n_images, normalize=True, scale_each=True)
+
+        originals = vutils.make_grid(images.cpu(), nrow=n_images, normalize=True)
+        reconstructions = vutils.make_grid(outputs.cpu(), nrow=n_images, normalize=True)
+        
+        plt.figure(figsize=(n_images * 2, 4))
+        plt.axis('off')
+        plt.title("Topo: Original | Abaixo: Reconstrução", fontsize=14)
+        plt.imshow(grid.permute(1, 2, 0).numpy())
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_dir, "comparison.png"))
+        plt.close()
+        
+#        vutils.save_image(originals, os.path.join(save_dir, "originals.png"))
+#        vutils.save_image(reconstructions, os.path.join(save_dir, "reconstructions.png"))

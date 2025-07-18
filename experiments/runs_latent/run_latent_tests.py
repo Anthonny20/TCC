@@ -1,22 +1,45 @@
-from models.linear.ae import Autoencoder
-from models.linear.sparse import SparseAutoencoder
-from models.linear.denoising import DenoisingAutoencoder
-from models.linear.vae import VariaotinalAutoencoder
+from models.convolucionais.ae_conv import ConvAutoencoder
+from models.convolucionais.sparse_conv import SparseConvAutoencoder
+from models.convolucionais.denoising_conv import DenoisingConvAutoencoder
+from models.convolucionais.vae_conv import ConvVAE
 from experiments.dataloader import get_dataloaders
-from experiments.train import train_autoencoder
-from experiments.utils import plot_reconstructions, save_metrics
+from experiments.train import *
+from experiments.reconstructions import *
+from experiments.run_all import save_metrics
 import torch
 import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-train_loader, test_loader = get_dataloaders(batch_size=128)
+
+train_loader, test_loader = get_dataloaders(batch_size=128, dataset="CIFAR10")
 
 # Vários valores para testar
-latent_dims = [2, 4, 8, 16, 32, 64, 128]
+latent_dims = [2, 4, 8, 16, 32, 64, 128, 256]
+
+models_info = {
+    "conv_ae": {
+        "model_class": ConvAutoencoder,
+        "train_fn": train_conv_autoencoder,
+    },
+    "conv_sparse": {
+        "model_class": SparseConvAutoencoder,
+        "train_fn": train_conv_sparse_autoenconder,
+        "extra_args": {"sparsity_weight": 1e-4}
+    },
+    "conv_denoising": {
+        "model_class": DenoisingConvAutoencoder,
+        "train_fn": train_conv_denoising_autoencoder,
+        "extra_args": {"noise_factor": 0.3}
+    },
+    "conv_vae": {
+        "model_class": ConvVAE,
+        "train_fn": train_conv_vae,
+    }
+}
 
 for latent_dim in latent_dims:
     print(f"\nTreinando Autoencoder com espaço latente = {latent_dim}")
-    model = Autoencoder(latent_dim=latent_dim).to(device)  # já manda pra device
+    model = ConvAutoencoder(latent_dim=latent_dim).to(device)  # já manda pra device
 
     # Teste rápido para checar shapes antes do treinamento
     images, _ = next(iter(train_loader))
@@ -27,12 +50,12 @@ for latent_dim in latent_dims:
     print('Output shape:', outputs.shape)
 
     # Treinamento
-    metrics = train_autoencoder(
+    metrics = train_conv_autoencoder(
         model, 
         train_loader, 
         test_loader, 
         device, 
-        epochs=5, 
+        epochs=30, 
         lr=1e-3
         )
 
@@ -41,7 +64,7 @@ for latent_dim in latent_dims:
     metric_path = os.path.join("results", "metrics", f"ae_linear_latent{latent_dim}.csv")
 
     # Salvar saída
-    plot_reconstructions(model, test_loader, device, save_path=recon_path)
+    save_reconstructions(model, test_loader, device, save_path=recon_path)
     save_metrics(metrics, filename=metric_path)
 
-    print(f"  > MSE: {metrics['mse']:.4f} | SSIM {metrics['ssim']:.4f}")
+    print(f"  > MSE: {metrics['mse']:.4f} | RMSE {metrics['rsme']:.4f} | PSNR {metrics['psnr']:.4f} | SSIM {metrics['ssim']:.4f} | UQI {metrics['uqi']:.4f} | ERGAS {metrics['ergas']:.4f}")

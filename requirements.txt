@@ -26,3 +26,7 @@ ipykernel==6.29.4
 
 # Utilitários
 tqdm==4.66.4
+
+piq
+
+sewar

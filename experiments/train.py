@@ -6,10 +6,13 @@ from tqdm import tqdm
 from experiments.evaluate import batch_metrics
 
 # AUTOENCODER CONV
-def train_conv_autoencoder(model, train_loader, test_loader, device, epochs=30, lr=1e-3, latent_dim=None):
+def train_conv_autoencoder(model, train_loader, test_loader, device, epochs=30, lr=1e-3, latent_dim=None, patience=5, min_delta=1e-4):
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
+    
+    best_loss = float('inf')
+    epochs_no_improve = 0
 
     model.train()
     for epoch in range(epochs):
@@ -28,6 +31,18 @@ def train_conv_autoencoder(model, train_loader, test_loader, device, epochs=30, 
             loop.set_postfix(loss=loss.item())
         avg_loss = sum(losses) / len(losses)
         print(f"epoca {epoch+1}: latent_dim: {latent_dim} loss: {avg_loss:.4f}")
+        
+        
+        # Early stopping check
+        if best_loss - avg_loss > min_delta:
+            best_loss = avg_loss
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+
+        if epochs_no_improve >= patience:
+            print(f"Parando o treino na época {epoch+1} por falta de melhora na loss.")
+            break
 
     model.eval()
     with torch.no_grad():
@@ -41,10 +56,13 @@ def train_conv_autoencoder(model, train_loader, test_loader, device, epochs=30, 
 
     
 # SPARSE AUTOENCODER CONV
-def train_conv_sparse_autoenconder(model, train_loader, test_loader, device, epochs=30, lr=1e-3, sparsity_weight=1e-4, latent_dim=None):
+def train_conv_sparse_autoenconder(model, train_loader, test_loader, device, epochs=30, lr=1e-3, sparsity_weight=1e-4, latent_dim=None, patience=5, min_delta=1e-4):
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
+    
+    best_loss = float('inf')
+    epochs_no_improve = 0
 
     model.train()
     for epoch in range(epochs):
@@ -63,6 +81,16 @@ def train_conv_sparse_autoenconder(model, train_loader, test_loader, device, epo
             loop.set_postfix(loss=loss.item())
         avg_loss = sum(losses) / len(losses)
         print(f"epoca {epoch+1}: latent_dim: {latent_dim} loss: {avg_loss:.4f}")
+        
+        if best_loss - avg_loss > min_delta:
+            best_loss = avg_loss
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+
+        if epochs_no_improve >= patience:
+            print(f"Early stopping na época {epoch+1} - sem melhora na loss.")
+            break
 
     model.eval()
     with torch.no_grad():
@@ -75,10 +103,13 @@ def train_conv_sparse_autoenconder(model, train_loader, test_loader, device, epo
     
 
 # DENOISING AUTOENCODER CONV
-def train_conv_denoising_autoencoder(model, train_loader, test_loader, device, epochs=30, lr=1e-3, noise_factor=0.3, latent_dim=None):
+def train_conv_denoising_autoencoder(model, train_loader, test_loader, device, epochs=30, lr=1e-3, noise_factor=0.3, latent_dim=None, patience=5, min_delta=1e-4):
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
+    
+    best_loss = float('inf')
+    epochs_no_improve = 0
 
     model.train()
     for epoch in range(epochs):
@@ -99,6 +130,16 @@ def train_conv_denoising_autoencoder(model, train_loader, test_loader, device, e
             loop.set_postfix(loss=loss.item())
         avg_loss = sum(losses) / len(losses)
         print(f"epoca {epoch+1}: latent_dim: {latent_dim} loss: {avg_loss:.4f}")
+        
+        if best_loss - avg_loss > min_delta:
+            best_loss = avg_loss
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+        
+        if epochs_no_improve >= patience:
+            print(f"Early stopping na época {epoch+1} - sem melhora na loss.")
+            break
 
     model.eval()
     with torch.no_grad():
@@ -115,9 +156,12 @@ def train_conv_denoising_autoencoder(model, train_loader, test_loader, device, e
     
 # VARIATIONAL AUTOENCODER CONV
 
-def train_conv_vae(model, train_loader, test_loader, device, epochs=30, lr=1e-3, latent_dim=None):
+def train_conv_vae(model, train_loader, test_loader, device, epochs=30, lr=1e-3, latent_dim=None, patience=5, min_delta=1e-4):
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    
+    best_loss = float('inf')
+    epochs_no_improve = 0
 
     model.train()
     for epoch in range(epochs):
@@ -138,6 +182,16 @@ def train_conv_vae(model, train_loader, test_loader, device, epochs=30, lr=1e-3,
             loop.set_postfix(loss=loss.item())
         avg_loss = sum(losses) / len(losses)
         print(f"epoca {epoch+1}: latent_dim: {latent_dim} loss: {avg_loss:.4f}")
+        
+        if best_loss - avg_loss > min_delta:
+            best_loss = avg_loss
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            
+        if epochs_no_improve >= patience:
+            print(f"Early stopping na época {epoch+1} - sem melhora na loss.")
+            break
 
     model.eval()
     with torch.no_grad():
